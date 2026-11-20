@@ -18,50 +18,21 @@ pub struct BaiduTestResponse {
     pub message: String,
 }
 
-/// Windows 原生：穿透鼠标点击事件（通过 Win32 API 动态切换 WS_EX_TRANSPARENT 样式）
+/// 穿透鼠标点击事件（通过 Tauri 2 原生 set_ignore_cursor_events 方法）
 #[tauri::command]
 fn set_click_through(window: WebviewWindow, ignore: bool) -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    {
-        use windows::Win32::Foundation::HWND;
-        use windows::Win32::UI::WindowsAndMessaging::{
-            GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT,
-        };
-
-        let hwnd_raw = window.hwnd().map_err(|e| e.to_string())?;
-        let hwnd = HWND(hwnd_raw.0 as _);
-
-        unsafe {
-            let cur_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
-            let new_style = if ignore {
-                cur_style | (WS_EX_TRANSPARENT.0 as i32) | (WS_EX_LAYERED.0 as i32)
-            } else {
-                (cur_style & !(WS_EX_TRANSPARENT.0 as i32)) | (WS_EX_LAYERED.0 as i32)
-            };
-            SetWindowLongW(hwnd, GWL_EXSTYLE, new_style);
-        }
-    }
-    Ok(())
+    window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())
 }
 
-/// Windows 原生：获取当前全局光标物理像素坐标
+/// 获取当前全局光标物理像素坐标
 #[tauri::command]
-fn get_cursor_position() -> Result<MousePoint, String> {
-    #[cfg(target_os = "windows")]
-    {
-        use windows::Win32::Foundation::POINT;
-        use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
-
-        let mut pt = POINT { x: 0, y: 0 };
-        unsafe {
-            let _ = GetCursorPos(&mut pt);
-        }
-        return Ok(MousePoint { x: pt.x, y: pt.y });
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        Ok(MousePoint { x: 100, y: 100 })
+fn get_cursor_position(app: AppHandle) -> Result<MousePoint, String> {
+    match app.cursor_position() {
+        Ok(pos) => Ok(MousePoint {
+            x: pos.x as i32,
+            y: pos.y as i32,
+        }),
+        Err(e) => Err(e.to_string()),
     }
 }
 
