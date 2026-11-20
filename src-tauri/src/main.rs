@@ -7,12 +7,6 @@ use tauri::webview::WebviewWindow;
 use tauri::Manager;
 
 #[derive(Serialize, Deserialize)]
-pub struct MousePoint {
-    pub x: i32,
-    pub y: i32,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct BaiduTestResponse {
     pub success: bool,
     pub latency_ms: u64,
@@ -23,18 +17,6 @@ pub struct BaiduTestResponse {
 #[tauri::command]
 fn set_click_through(window: WebviewWindow, ignore: bool) -> Result<(), String> {
     window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())
-}
-
-/// 获取当前全局光标物理像素坐标
-#[tauri::command]
-fn get_cursor_position(window: WebviewWindow) -> Result<MousePoint, String> {
-    match window.cursor_position() {
-        Ok(pos) => Ok(MousePoint {
-            x: pos.x as i32,
-            y: pos.y as i32,
-        }),
-        Err(e) => Err(e.to_string()),
-    }
 }
 
 /// 百度翻译开放平台官方直连：MD5 签名生成与网络连通性测速
@@ -133,7 +115,6 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::init())
         .invoke_handler(tauri::generate_handler![
             set_click_through,
-            get_cursor_position,
             test_baidu_connectivity
         ])
         .setup(|app| {

@@ -6,7 +6,6 @@
   "permissions": [
     "core:default",
     "core:window:allow-set-ignore-cursor-events",
-    "core:window:allow-cursor-position",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered"
