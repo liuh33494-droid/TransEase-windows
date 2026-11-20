@@ -117,13 +117,7 @@ fn main() {
             set_click_through,
             test_baidu_connectivity
         ])
-        .setup(|app| {
-            #[cfg(debug_assertions)]
-            {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.open_devtools();
-                }
-            }
+        .setup(|_app| {
             Ok(())
         })
         .run(tauri::generate_context!())
