@@ -4,6 +4,7 @@
   "description": "Default permissions for TransEase Windows",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:window:allow-set-ignore-cursor-events"
   ]
 }
