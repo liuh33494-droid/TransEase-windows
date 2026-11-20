@@ -34,27 +34,19 @@ jobs:
         run: |
           cargo build --release > cargo-build.log 2>&1
           if %errorlevel% neq 0 (
-            type cargo-build.log
             exit /b %errorlevel%
           )
 
-      - name: Publish Build Failure Summary
-        if: failure()
-        shell: pwsh
-        run: |
-          if (Test-Path "src-tauri/cargo-build.log") {
-            "### ❌ Cargo Build Error Log" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-            Get-Content "src-tauri/cargo-build.log" -Tail 60 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          }
-
-      - name: Upload Build Log Artifact
+      - name: Push Build Log to Git Branch
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-build-log
-          path: src-tauri/cargo-build.log
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B ci-build-logs
+          git add -f src-tauri/cargo-build.log
+          git commit -m "ci: capture cargo-build.log [skip ci]" || true
+          git push -f origin ci-build-logs || true
 
       - name: Build TransEase Bundle via Tauri CLI
         run: npm run tauri -- build --no-sign
