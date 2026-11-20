@@ -31,10 +31,26 @@ jobs:
         run: npm ci
 
       - name: Check Tauri Environment & Diagnostics
-        run: npx tauri info
+        shell: pwsh
+        run: |
+          "### 🔍 Tauri Environment Info" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          npx tauri info | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       - name: Build TransEase Application via Tauri CLI
-        run: npx tauri build --bundles nsis --verbose
+        shell: pwsh
+        run: |
+          "### 🛠️ Tauri Build Log" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          $buildOutput = & npx tauri build --verbose 2>&1
+          $exitCode = $LASTEXITCODE
+          $buildOutput | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if ($exitCode -ne 0) {
+            Write-Error "Tauri build exited with code $exitCode"
+            exit $exitCode
+          }
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
