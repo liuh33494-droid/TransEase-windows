@@ -79,6 +79,20 @@ jobs:
           name: Tauri-Build-Log
           path: build.log
 
+      - name: Report Diagnostic Log to Git
+        if: always()
+        shell: pwsh
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout -B diagnostics
+          if (Test-Path build.log) {
+            Copy-Item build.log diagnostics.txt
+            git add diagnostics.txt
+            git commit -m "chore(ci): capture build diagnostic log"
+            git push -f origin diagnostics
+          }
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: success()
