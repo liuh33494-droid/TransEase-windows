@@ -30,8 +30,11 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Check Tauri Environment & Diagnostics
+        run: npx tauri info
+
       - name: Build TransEase Application via Tauri CLI
-        run: npx tauri build --bundles nsis
+        run: npx tauri build --bundles nsis --verbose
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
