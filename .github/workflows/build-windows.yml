@@ -30,14 +30,8 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Build TransEase Portable Binary (Direct Cargo Release)
-        run: |
-          cd src-tauri
-          cargo build --release --verbose
-
-      - name: Build TransEase NSIS Installer via Tauri CLI
+      - name: Build TransEase Application via Tauri CLI
         run: npx tauri build --bundles nsis
-        continue-on-error: true
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
@@ -52,9 +46,10 @@ jobs:
           }
 
           # 查找独立便携版 exe 并复制重命名
-          if (Test-Path "src-tauri/target/release/transease.exe") {
-            Copy-Item "src-tauri/target/release/transease.exe" "dist-release/TransEase_Windows_Portable.exe"
-            Write-Host "Found Portable Binary: src-tauri/target/release/transease.exe"
+          $portable = Get-ChildItem -Path "src-tauri/target/release/transease.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($portable) {
+            Copy-Item $portable.FullName "dist-release/TransEase_Windows_Portable.exe"
+            Write-Host "Found Portable Binary: $($portable.FullName)"
           }
 
           Get-ChildItem -Path dist-release
@@ -68,7 +63,6 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: success()
-        continue-on-error: true
         with:
           tag_name: v3.1.0-win
           name: "TransEase Windows v3.1.0"

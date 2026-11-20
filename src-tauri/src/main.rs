@@ -3,8 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
-use tauri::webview::WebviewWindow;
-use tauri::Manager;
+use tauri::{Manager, WebviewWindow};
 
 #[derive(Serialize, Deserialize)]
 pub struct BaiduTestResponse {
