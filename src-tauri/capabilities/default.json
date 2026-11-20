@@ -4,10 +4,6 @@
   "description": "Default permissions for TransEase Windows",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "core:window:allow-set-ignore-cursor-events",
-    "global-shortcut:allow-register",
-    "global-shortcut:allow-unregister",
-    "global-shortcut:allow-is-registered"
+    "core:default"
   ]
 }

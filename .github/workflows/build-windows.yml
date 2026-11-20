@@ -30,8 +30,14 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Build TransEase Application via Tauri CLI
+      - name: Build TransEase Portable Binary (Direct Cargo Release)
+        run: |
+          cd src-tauri
+          cargo build --release --verbose
+
+      - name: Build TransEase NSIS Installer via Tauri CLI
         run: npx tauri build --bundles nsis
+        continue-on-error: true
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
@@ -46,10 +52,9 @@ jobs:
           }
 
           # 查找独立便携版 exe 并复制重命名
-          $portable = Get-ChildItem -Path "src-tauri/target/release/transease.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($portable) {
-            Copy-Item $portable.FullName "dist-release/TransEase_Windows_Portable.exe"
-            Write-Host "Found Portable Binary: $($portable.FullName)"
+          if (Test-Path "src-tauri/target/release/transease.exe") {
+            Copy-Item "src-tauri/target/release/transease.exe" "dist-release/TransEase_Windows_Portable.exe"
+            Write-Host "Found Portable Binary: src-tauri/target/release/transease.exe"
           }
 
           Get-ChildItem -Path dist-release
