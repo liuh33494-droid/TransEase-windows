@@ -34,7 +34,7 @@ jobs:
           cargo check --verbose
 
       - name: Build TransEase via Tauri CLI
-        run: npx tauri build
+        run: npx tauri build --bundles nsis
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
