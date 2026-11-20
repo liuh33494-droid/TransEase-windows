@@ -65,17 +65,21 @@ async fn test_baidu_connectivity(app_id: String, app_key: String) -> Result<Baid
         .build()
         .map_err(|e| e.to_string())?;
 
+    let salt_str = salt.as_str();
+    let sign_str = sign.as_str();
+    let form_params = [
+        ("q", query),
+        ("from", "en"),
+        ("to", "zh"),
+        ("appid", clean_id),
+        ("salt", salt_str),
+        ("sign", sign_str),
+    ];
+
     let start_time = Instant::now();
     let resp = client
         .post("https://api.fanyi.baidu.com/api/trans/vip/translate")
-        .form(&[
-            ("q", query),
-            ("from", "en"),
-            ("to", "zh"),
-            ("appid", clean_id),
-            ("salt", &salt),
-            ("sign", &sign),
-        ])
+        .form(&form_params)
         .send()
         .await;
 

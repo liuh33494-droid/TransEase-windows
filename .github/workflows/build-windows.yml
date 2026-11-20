@@ -28,22 +28,13 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Build TransEase via Tauri CLI
-        shell: pwsh
+      - name: Verify & Compile Rust Backend
         run: |
-          $ErrorActionPreference = "Continue"
-          npx @tauri-apps/cli build --verbose 2>&1 | Tee-Object -FilePath build.log
-          $exitCode = $LASTEXITCODE
+          cd src-tauri
+          cargo check --verbose
 
-          # 写入 Job Summary 供公开直接查看
-          "### 🛠️ Tauri Build Diagnostic Log (Exit Code: $exitCode)`n```text" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
-          Get-Content build.log -Tail 150 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-
-          if ($exitCode -ne 0) {
-            Write-Host "::error::Tauri build failed with exit code $exitCode"
-            exit $exitCode
-          }
+      - name: Build TransEase via Tauri CLI
+        run: npx tauri build
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
@@ -71,27 +62,6 @@ jobs:
         with:
           name: TransEase-Windows-v3.1.0
           path: dist-release/*
-
-      - name: Upload Diagnostic Build Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Tauri-Build-Log
-          path: build.log
-
-      - name: Report Diagnostic Log to Git
-        if: always()
-        shell: pwsh
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git checkout -B diagnostics
-          if (Test-Path build.log) {
-            Copy-Item build.log diagnostics.txt
-            git add diagnostics.txt
-            git commit -m "chore(ci): capture build diagnostic log"
-            git push -f origin diagnostics
-          }
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
