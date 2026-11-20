@@ -30,17 +30,24 @@ jobs:
 
       - name: Compile Rust Backend via Cargo
         working-directory: src-tauri
-        shell: bash
+        shell: pwsh
         run: |
-          cargo build --release 2>&1 | tee cargo-build.log
-          EXIT_CODE=${PIPESTATUS[0]}
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "### ❌ Cargo Build Error Log" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 60 cargo-build.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit $EXIT_CODE
-          fi
+          cargo build --release 2>&1 | Tee-Object -FilePath "cargo-build.log"
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) {
+            "### ❌ Cargo Build Error Log" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            Get-Content "cargo-build.log" -Tail 60 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            exit $exitCode
+          }
+
+      - name: Upload Build Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-build-log
+          path: src-tauri/cargo-build.log
 
       - name: Build TransEase Bundle via Tauri CLI
         run: npm run tauri -- build --no-sign
