@@ -29,7 +29,7 @@ jobs:
         run: npm ci
 
       - name: Build TransEase via Tauri CLI
-        run: npx tauri build
+        run: npx tauri build --verbose
 
       - name: Organize Windows Distribution Packages
         shell: pwsh

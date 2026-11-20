@@ -3,7 +3,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::webview::WebviewWindow;
+use tauri::Manager;
 
 #[derive(Serialize, Deserialize)]
 pub struct MousePoint {
@@ -26,8 +27,8 @@ fn set_click_through(window: WebviewWindow, ignore: bool) -> Result<(), String> 
 
 /// 获取当前全局光标物理像素坐标
 #[tauri::command]
-fn get_cursor_position(app: AppHandle) -> Result<MousePoint, String> {
-    match app.cursor_position() {
+fn get_cursor_position(window: WebviewWindow) -> Result<MousePoint, String> {
+    match window.cursor_position() {
         Ok(pos) => Ok(MousePoint {
             x: pos.x as i32,
             y: pos.y as i32,

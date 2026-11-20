@@ -28,7 +28,7 @@
       "csp": null
     },
     "trayIcon": {
-      "iconPath": "icons/icon.png",
+      "iconPath": "icons/32x32.png",
       "tooltip": "透镜 TransEase - 随动透镜与实时同传"
     }
   },
