@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TransEase 透镜 - Windows 原生客户端</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 1. 随动透镜视图 (Hover Lens) -->
+  <div class="lens-container" id="lensView">
+    <div class="lens-header">
+      <div class="lens-brand">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span>透镜 · Alt+X</span>
+      </div>
+
+      <div class="lens-actions">
+        <button class="icon-btn" id="btnMode" title="切换实时视频字幕 (Alt+V)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="15" x2="17" y2="15"></line>
+            <line x1="7" y1="18" x2="14" y2="18"></line>
+          </svg>
+        </button>
+
+        <button class="icon-btn" id="btnPin" title="锁定位置 (解除穿透以便框选复制)">
+          📌
+        </button>
+
+        <button class="icon-btn" id="btnSettings" title="偏好设置">
+          ⚙️
+        </button>
+
+        <button class="icon-btn" id="btnClose" title="隐藏透镜 (Esc)">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <div class="lens-content">
+      <div class="lens-orig-box" id="lensOrig">
+        Hover over any English text across Windows, and translation emerges naturally in place.
+      </div>
+      <div class="lens-trans-box" id="lensTrans">
+        视线所及，原位译达。鼠标扫过 Windows 任意英文区域并轻微停顿，译文即刻自然呈现。
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 实时视频字幕与同传视图 (4行阶梯歌词流) -->
+  <div class="subtitle-hud" id="subtitleHud">
+    <div class="lens-header">
+      <div class="lens-brand">
+        <span>🎙️ 实时视频字幕 · 4行阶梯同传</span>
+      </div>
+      <div class="lens-actions">
+        <button class="icon-btn" id="btnReturnLens" title="切回随动透镜">
+          🔮
+        </button>
+      </div>
+    </div>
+
+    <div class="subtitle-rolling-box">
+      <div class="subtitle-row history">
+        <span class="subtitle-row-orig">1. DeepSeek-V3 introduces Multi-Head Latent Attention.</span>
+        <span class="subtitle-row-trans">DeepSeek-V3 引入了多头潜在注意力机制。</span>
+      </div>
+      <div class="subtitle-row history">
+        <span class="subtitle-row-orig">2. It drastically cuts memory footprints during inference.</span>
+        <span class="subtitle-row-trans">这在大模型推理阶段大幅降低了显存与内存开销。</span>
+      </div>
+      <div class="subtitle-row history">
+        <span class="subtitle-row-orig">3. Next-token prediction accuracy is substantially enhanced.</span>
+        <span class="subtitle-row-trans">下一个 Token 的预测准确率与生成质量获得了质的跃升。</span>
+      </div>
+      <div class="subtitle-row active">
+        <span class="subtitle-row-orig">4. TransEase loopbacks audio cleanly on Windows via WASAPI.</span>
+        <span class="subtitle-row-trans">透镜基于 Windows WASAPI 扬声器回环技术，毫秒级流式生成实时双语外挂字幕。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 设置面板 (Settings Modal) -->
+  <div class="settings-modal" id="settingsModal">
+    <div class="settings-header">
+      <span class="settings-title">透镜偏好设置 (Windows 版)</span>
+      <button class="icon-btn" id="btnCloseSettings">✕</button>
+    </div>
+
+    <div class="settings-body">
+      <!-- 引擎选择 -->
+      <div class="form-group">
+        <label class="form-label">首选翻译引擎</label>
+        <select class="form-input" id="selectEngine">
+          <option value="auto">智能自适应 (国内优先直连，备用极速)</option>
+          <option value="baidu">百度翻译开放平台 (国内官方免翻直连)</option>
+          <option value="google">Google 极速 (需代理或无阻网络)</option>
+        </select>
+      </div>
+
+      <!-- 百度密钥 -->
+      <div class="form-group">
+        <label class="form-label">百度翻译开放平台密钥 (免费申请免翻直连)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" class="form-input" id="baiduAppId" placeholder="App ID (纯数字)" style="flex: 1;">
+          <input type="password" class="form-input" id="baiduAppKey" placeholder="密钥 (Secret Key)" style="flex: 1.5;">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-test" id="btnTestBaidu">⚡ 测试连接与延迟</button>
+        <span id="baiduStatus" class="status-badge"></span>
+      </div>
+
+      <!-- 快捷键说明 -->
+      <div class="form-group" style="margin-top: 8px;">
+        <label class="form-label">Windows 系统全局快捷键</label>
+        <div style="font-size: 0.76rem; color: #94a3b8; line-height: 1.8;">
+          • <strong>Alt + X</strong>：开启 / 隐藏鼠标随动透镜<br>
+          • <strong>Alt + V</strong>：开启实时视频字幕与会议同传<br>
+          • <strong>Esc</strong>：快速隐藏退出当前透镜浮窗
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/translation.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

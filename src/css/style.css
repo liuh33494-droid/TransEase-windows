@@ -1,0 +1,289 @@
+/* ===================================================================
+   TransEase (透镜) - Windows 原生客户端样式表
+   设计风格：Windows 11 Fluent Design (Acrylic 磨砂黑曜石)
+   =================================================================== */
+
+:root {
+  --bg-acrylic: rgba(13, 16, 23, 0.82);
+  --bg-card: rgba(22, 27, 39, 0.75);
+  --bg-card-hover: rgba(30, 38, 56, 0.9);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(56, 189, 248, 0.45);
+  --border-highlight: rgba(255, 255, 255, 0.16);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-cyan: #38bdf8;
+
+  --accent-cyan: #38bdf8;
+  --accent-blue: #0284c7;
+
+  --font-fluent: "Segoe UI Variable Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-fluent);
+  background: transparent;
+  color: var(--text-primary);
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* =========================================
+   1. 鼠标随动透镜 (Hover Lens)
+   ========================================= */
+.lens-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-acrylic);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.18);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease;
+}
+
+.lens-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: rgba(56, 189, 248, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
+  border-top-left-radius: calc(var(--radius-lg) - 1px);
+  border-top-right-radius: calc(var(--radius-lg) - 1px);
+  -webkit-app-region: drag; /* 允许鼠标拖动手柄 */
+}
+
+.lens-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
+.lens-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.icon-btn.active {
+  color: var(--accent-cyan);
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.lens-content {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.lens-orig-box {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  border-left: 2px solid #334155;
+  padding-left: 8px;
+}
+
+.lens-trans-box {
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: #38bdf8;
+  line-height: 1.6;
+}
+
+/* =========================================
+   2. 实时视频字幕与同传 (4行阶梯歌词流)
+   ========================================= */
+.subtitle-hud {
+  display: none;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 14, 22, 0.88);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: var(--radius-lg);
+  flex-direction: column;
+}
+
+.subtitle-rolling-box {
+  flex: 1;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.subtitle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.25s ease-out;
+}
+
+.subtitle-row.history {
+  opacity: 0.55;
+  filter: blur(0.2px);
+}
+
+.subtitle-row.active {
+  opacity: 1;
+}
+
+.subtitle-row-orig {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.subtitle-row-trans {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.subtitle-row.active .subtitle-row-trans {
+  color: #38bdf8;
+}
+
+/* =========================================
+   3. 偏好设置面板 (Settings Modal)
+   ========================================= */
+.settings-modal {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 15, 23, 0.96);
+  backdrop-filter: blur(24px);
+  border-radius: var(--radius-lg);
+  flex-direction: column;
+  z-index: 50;
+  padding: 16px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.form-input {
+  background: #090c13;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--accent-cyan);
+}
+
+.btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-test {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent-cyan);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-test:hover {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.status-badge.success { color: #4ade80; }
+.status-badge.error { color: #f87171; }

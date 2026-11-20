@@ -1,0 +1,48 @@
+name: Build TransEase Windows Release
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Build Tauri Application for Windows
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v3.1.0-win
+          releaseName: "TransEase Windows v3.1.0"
+          releaseBody: "TransEase (透镜) - Windows 官方安装程序与便携免安装包"
+          releaseDraft: false
+          prerelease: false
+
+      - name: Upload Windows Binaries Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TransEase-Windows-Build
+          path: |
+            src-tauri/target/release/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
