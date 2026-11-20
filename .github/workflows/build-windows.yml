@@ -25,16 +25,11 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
       - name: Install Node dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build TransEase via Tauri CLI
-        run: npm run build
+        run: npx tauri build
 
       - name: Organize Windows Distribution Packages
         shell: pwsh
@@ -42,16 +37,17 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist-release
           
           # 查找 NSIS 安装包并复制重命名
-          $nsis = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis/*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $nsis = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis/*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($nsis) {
             Copy-Item $nsis.FullName "dist-release/TransEase_Windows_Setup.exe"
             Write-Host "Found NSIS Setup: $($nsis.FullName)"
           }
 
           # 查找独立便携版 exe 并复制重命名
-          if (Test-Path "src-tauri/target/release/transease.exe") {
-            Copy-Item "src-tauri/target/release/transease.exe" "dist-release/TransEase_Windows_Portable.exe"
-            Write-Host "Found Portable Binary: src-tauri/target/release/transease.exe"
+          $portable = Get-ChildItem -Path "src-tauri/target/release/transease.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($portable) {
+            Copy-Item $portable.FullName "dist-release/TransEase_Windows_Portable.exe"
+            Write-Host "Found Portable Binary: $($portable.FullName)"
           }
 
           Get-ChildItem -Path dist-release
