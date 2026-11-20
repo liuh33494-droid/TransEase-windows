@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
-use tauri::{Manager, WebviewWindow};
+use tauri::WebviewWindow;
 
 #[derive(Serialize, Deserialize)]
 pub struct BaiduTestResponse {
@@ -111,7 +111,7 @@ async fn test_baidu_connectivity(app_id: String, app_key: String) -> Result<Baid
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_global_shortcut::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             set_click_through,
             test_baidu_connectivity
