@@ -14,8 +14,8 @@
       {
         "title": "TransEase Lens",
         "label": "main",
-        "width": 480,
-        "height": 240,
+        "width": 520,
+        "height": 330,
         "resizable": true,
         "transparent": true,
         "decorations": false,

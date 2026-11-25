@@ -1,157 +1,157 @@
 /**
- * TransEase (透镜) - Windows 核心翻译引擎
- * 支持：百度翻译开放平台官方直连、Google 极速、MyMemory 兜底与缓存
+ * TransEase (透镜) - Windows 核心翻译引擎与本地缓存管理
+ * Tauri 桌面环境下全量路由至 Rust 后端 (MD5 签名、代理配置、CORS 免疫、智能降级)；
+ * 纯浏览器预览时降级直连 Google GTX / MyMemory。
  */
 
 class TranslationEngine {
   constructor() {
     this.cache = new Map();
+    this.historyKey = 'transease_win_history';
   }
 
   getSettings() {
     return {
-      baiduAppId: localStorage.getItem('transease_baidu_app_id') || '',
-      baiduAppKey: localStorage.getItem('transease_baidu_app_key') || '',
+      baiduAppId: (localStorage.getItem('transease_baidu_app_id') || '').trim(),
+      baiduAppKey: (localStorage.getItem('transease_baidu_app_key') || '').trim(),
       engine: localStorage.getItem('transease_engine') || 'auto',
-      targetLang: localStorage.getItem('transease_target_lang') || 'zh'
+      targetLang: localStorage.getItem('transease_target_lang') || 'zh-CN',
+      proxyMode: localStorage.getItem('transease_proxy_mode') || 'system',
+      proxyUrl: (localStorage.getItem('transease_proxy_url') || '').trim()
     };
   }
 
-  /**
-   * 综合翻译入口：根据配置自适应选择引擎
-   */
-  async translate(text, targetLang = 'zh', sourceLang = 'auto') {
-    const cleanText = text.trim();
-    if (!cleanText) return '';
+  getHistory() {
+    try {
+      const raw = localStorage.getItem(this.historyKey);
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  }
 
-    const cacheKey = `${sourceLang}->${targetLang}:${cleanText}`;
+  addHistory(source, translated, engineUsed) {
+    const cleanSrc = source.trim();
+    const cleanDst = translated.trim();
+    if (!cleanSrc || !cleanDst) return;
+    const list = this.getHistory();
+    if (list.length > 0 && list[0].source === cleanSrc && list[0].translated === cleanDst) return;
+    list.unshift({
+      source: cleanSrc,
+      translated: cleanDst,
+      engine: engineUsed || '',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+    if (list.length > 100) list.length = 100;
+    try {
+      localStorage.setItem(this.historyKey, JSON.stringify(list));
+    } catch (_) {}
+  }
+
+  clearHistory() {
+    localStorage.removeItem(this.historyKey);
+  }
+
+  async translate(text, targetLangOverride = null, sourceLang = 'auto') {
+    const cleanText = text.trim();
+    if (!cleanText) {
+      return { success: true, translatedText: '', engineUsed: '就绪', errorMessage: '' };
+    }
+
+    const settings = this.getSettings();
+    const targetLang = targetLangOverride || settings.targetLang;
+    const cacheKey = `${settings.engine}:${sourceLang}->${targetLang}:${cleanText}`;
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
-    const { baiduAppId, baiduAppKey, engine } = this.getSettings();
-
-    // 优先：如果配置了百度且选了百度或智能自适应
-    if (baiduAppId && baiduAppKey && (engine === 'baidu' || engine === 'auto')) {
-      try {
-        const res = await this.translateViaBaidu(cleanText, targetLang, sourceLang, baiduAppId, baiduAppKey);
-        if (res) {
-          this.cache.set(cacheKey, res);
-          return res;
-        }
-      } catch (err) {
-        console.warn('[TransEase] 百度直连失败，尝试极速降级:', err);
-      }
-    }
-
-    // 降级：Google 极速
-    try {
-      const res = await this.translateViaGoogle(cleanText, targetLang, sourceLang);
-      if (res) {
-        this.cache.set(cacheKey, res);
-        return res;
-      }
-    } catch (_) {}
-
-    // 兜底：MyMemory
-    try {
-      const res = await this.translateViaMyMemory(cleanText, targetLang, sourceLang);
-      if (res) {
-        this.cache.set(cacheKey, res);
-        return res;
-      }
-    } catch (_) {}
-
-    return cleanText;
-  }
-
-  /**
-   * 百度翻译开放平台官方直连 (通过 Tauri Rust 后端直接请求，避免 CORS)
-   */
-  async translateViaBaidu(text, target, source, appId, appKey) {
+    // 1. Tauri 原生桌面后端通道（真实 MD5 + 代理 + 无 CORS 限制）
     if (window.__TAURI__ && window.__TAURI__.core) {
-      // 通过 Tauri Rust 后端直连
-      const res = await window.__TAURI__.core.invoke('test_baidu_connectivity', {
-        appId,
-        appKey
-      });
-      if (res && !res.success) {
-        throw new Error(res.message);
+      try {
+        const res = await window.__TAURI__.core.invoke('translate_text', {
+          text: cleanText,
+          targetLang: targetLang,
+          sourceLang: sourceLang,
+          engine: settings.engine,
+          baiduAppId: settings.baiduAppId,
+          baiduAppKey: settings.baiduAppKey,
+          proxyMode: settings.proxyMode,
+          proxyUrl: settings.proxyUrl
+        });
+        const output = {
+          success: !!res.success,
+          translatedText: res.translated_text || '',
+          detectedSource: res.detected_source || sourceLang,
+          engineUsed: res.engine_used || settings.engine,
+          errorMessage: res.error_message || ''
+        };
+        if (output.success && output.translatedText) {
+          this.cache.set(cacheKey, output);
+          this.addHistory(cleanText, output.translatedText, output.engineUsed);
+        }
+        return output;
+      } catch (err) {
+        return {
+          success: false,
+          translatedText: '',
+          engineUsed: 'IPC 异常',
+          errorMessage: String(err && err.message ? err.message : err)
+        };
       }
     }
 
-    // 简易直接请求 (开发/浏览器端备用)
-    const salt = Date.now().toString();
-    const sign = await this.md5Hex(`${appId}${text}${salt}${appKey}`);
-    const url = 'https://api.fanyi.baidu.com/api/trans/vip/translate';
+    // 2. 纯浏览器预览兜底（Google GTX -> MyMemory）
+    try {
+      const gtxText = await this.translateViaGoogleBrowser(cleanText, targetLang, sourceLang);
+      if (gtxText) {
+        const out = { success: true, translatedText: gtxText, engineUsed: 'Google 极速 (预览)', errorMessage: '' };
+        this.cache.set(cacheKey, out);
+        this.addHistory(cleanText, gtxText, out.engineUsed);
+        return out;
+      }
+    } catch (_) {}
 
-    const params = new URLSearchParams({
-      q: text,
-      from: source === 'auto' ? 'auto' : source,
-      to: target,
-      appid: appId,
-      salt: salt,
-      sign: sign
-    });
+    try {
+      const mmText = await this.translateViaMyMemoryBrowser(cleanText, targetLang, sourceLang);
+      if (mmText) {
+        const out = { success: true, translatedText: mmText, engineUsed: 'MyMemory (预览)', errorMessage: '' };
+        this.cache.set(cacheKey, out);
+        this.addHistory(cleanText, mmText, out.engineUsed);
+        return out;
+      }
+    } catch (_) {}
 
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params
-    });
-
-    const data = await resp.json();
-    if (data.error_code && data.error_code !== '52000') {
-      throw new Error(`百度错误 [${data.error_code}]: ${data.error_msg}`);
-    }
-
-    if (data.trans_result && data.trans_result[0]) {
-      return data.trans_result.map(item => item.dst).join('\n');
-    }
-    return '';
+    return {
+      success: false,
+      translatedText: '',
+      engineUsed: '网络受阻',
+      errorMessage: '翻译请求失败，请检查网络连接或配置百度直连 / 代理'
+    };
   }
 
-  /**
-   * Google 极速公共接口
-   */
-  async translateViaGoogle(text, target, source) {
+  async translateViaGoogleBrowser(text, target, source) {
     const sl = source === 'auto' ? 'auto' : source;
-    const tl = target;
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
-
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
     const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    if (data && data[0]) {
-      return data[0].map(item => item[0]).join('');
+    if (data && Array.isArray(data[0])) {
+      return data[0].map((item) => item[0]).join('');
     }
     return '';
   }
 
-  /**
-   * MyMemory 公共接口
-   */
-  async translateViaMyMemory(text, target, source) {
+  async translateViaMyMemoryBrowser(text, target, source) {
     const sl = source === 'auto' ? 'en' : source;
     const langpair = `${sl}|${target}`;
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(langpair)}`;
-
     const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    if (data && data.responseData && data.responseData.translatedText) {
+    if (data && data.responseStatus === 200 && data.responseData && data.responseData.translatedText) {
       return data.responseData.translatedText;
     }
     return '';
-  }
-
-  async md5Hex(str) {
-    const msgUint8 = new TextEncoder().encode(str);
-    const hashBuffer = await crypto.subtle.digest('MD5', msgUint8).catch(() => null);
-    if (!hashBuffer) {
-      // 简单降级 hash
-      return Math.random().toString(36).substring(2);
-    }
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 }
 
